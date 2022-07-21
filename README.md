@@ -1,191 +1,111 @@
-# 瑞萨 CPK-RA6M4 开发板 BSP 说明
+@[toc](【Renesas RA6M4开发板之按键和LED的GPIO】)
 
-## 简介
+# 1.0 I/O 设备模型
+绝大部分的嵌入式系统都包括一些 I/O（Input/Output，输入 / 输出）设备，例如仪器上的数据显示屏、工业设备上的串口通信、数据采集设备上用于保存数据的 Flash 或 SD 卡，以及网络设备的以太网接口等，都是嵌入式系统中容易找到的 I/O 设备例子。
 
-本文档为瑞萨 CPK-RA6M4 开发板提供的 BSP (板级支持包) 说明。通过阅读快速上手章节开发者可以快速地上手该 BSP，将 RT-Thread 运行在开发板上。
+## 1.1 I/O 设备模型框架
+RT-Thread 提供了一套简单的 I/O 设备模型框架，如下图所示，它位于硬件和应用程序之间，共分成三层，从上到下分别是 I/O 设备管理层、设备驱动框架层、设备驱动层。
+![在这里插入图片描述](https://img-blog.csdnimg.cn/af9c471f03344ab3a31badff192e9754.png)
+应用程序通过 I/O 设备管理接口获得正确的设备驱动，然后通过这个设备驱动与底层 I/O 硬件设备进行数据（或控制）交互。
 
-主要内容如下：
-
-- 开发板介绍
-- BSP 快速上手指南
-
-## 开发板介绍
-
-基于瑞萨 RA6M4 MCU 开发的 CPK-RA6M4 MCU 评估板，通过灵活配置软件包和 IDE，可帮助用户对 RA6M4 MCU 群组的特性轻松进行评估，并对嵌入系统应用程序进行开发。
-
-开发板正面外观如下图：
-
-![image-20211011174017429](docs/picture/cpk-ra6m4.png) 
-
-该开发板常用 **板载资源** 如下：
-
-- MCU：R7FA6M4AF3CFB，200MHz，Arm Cortex®-M33 内核，1MB 代码闪存, 256kB SRAM
-- 调试接口：板载 J-Link 接口
-- 扩展接口：两个 PMOD 连接器
-
-**更多详细资料及工具**
-
-## 外设支持
-
-本 BSP 目前对外设的支持情况如下：
-
-| **片上外设** | **支持情况** | **备注** |
-| :----------------- | :----------------- | :------------- |
-| UART               | 支持               | UART7 为默认日志输出端口 |
-| GPIO               | 支持               |                |
-| IIC                | 支持               | 软件           |
-| WDT                | 支持               |                |
-| RTC                | 支持               |                |
-| ADC                | 支持               |                |
-| DAC                | 支持               |                |
-| SPI                | 支持               |                |
-| FLASH              | 支持               |                |
-| PWM                | 支持               |                |
-| CAN                | 支持               |                |
-| 持续更新中...      |                    |                |
-| **外接外设** | **支持情况** | **备注** |
-| WiFi 模块     | 支持        |  [RW007 WiFi 网络模块](https://github.com/RT-Thread-packages/rw007)  |
-| 温湿度传感器   | 支持       |  [HS300x 温湿度模块](https://github.com/Guozhanxin/hs300x) |
-| 室内空气质量传感器 | 支持 | [zmod4410 室内空气质量模块](https://github.com/ShermanShao/zmod4410) |
-| 光线传感器 | 支持 | [isl29035光线传感器模块](https://github.com/ShermanShao/isl29035) |
+## 1.2 I/O 设备模型
+RT-Thread 的设备模型是建立在内核对象模型基础之上的，设备被认为是一类对象，被纳入对象管理器的范畴。每个设备对象都是由基对象派生而来，每个具体设备都可以继承其父类对象的属性，并派生出其私有属性，下图是设备对象的继承和派生关系示意图。
+![在这里插入图片描述](https://img-blog.csdnimg.cn/e35c0fa661704e639f8a8a580e16ca77.png)
 
 
-## 使用说明
+# 2. RT-theard配置
+## 2.1 硬件需求
 
-使用说明分为如下两个章节：
 
-- 快速上手
+> 实现功能：
+> 板载按键切换LED3 不同频闪模式。
 
-  本章节是为刚接触 RT-Thread 的新手准备的使用说明，遵循简单的步骤即可将 RT-Thread 操作系统运行在该开发板上，看到实验效果 。
-- 进阶使用
+1、RA6M4开发板
+![在这里插入图片描述](https://img-blog.csdnimg.cn/4c5dcda23c6d4afaacb393dc46a7ae51.png)
+2、USB下载线，ch340串口和附带2根母母线，**rx---p613;tx---p614**
+![在这里插入图片描述](https://img-blog.csdnimg.cn/00c41a688cfb4fc096324fbbe1d3feb9.png)
+*实验中采用按键和LED3都板载的（分别对应p105和p106）*
 
-  本章节是为需要在 RT-Thread 操作系统上使用更多开发板资源的开发者准备的。通过使用 ENV 工具对 BSP 进行配置，可以开启更多板载资源，实现更多高级功能。
 
-### 快速上手
+## 2.2 软件配置
+Renesas RA6M4开发板环境配置参照：[【基于 RT-Thread Studio的CPK-RA6M4 开发板环境搭建】](https://blog.csdn.net/vor234/article/details/125634313)
+1、新建项目RA6M4-GPIO工程
+![在这里插入图片描述](https://img-blog.csdnimg.cn/1e3de91d9b624c0887c254a8e60938e5.png)
 
-本 BSP 目前仅提供 MDK5 工程。下面以 MDK5 开发环境为例，介绍如何将系统运行起来。
+2、修改src文件下的main.c文件，其他不变。
+`main.c`
+```cpp
+/*
+ * Copyright (c) 2006-2021, RT-Thread Development Team
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Change Logs:
+ * Date           Author        Notes
+ * 2021-10-10     Sherman       first version
+ * 2021-11-03     Sherman       Add icu_sample
+ */
 
-**硬件连接**
+#include <rtthread.h>
+#include "hal_data.h"
+#include <rtdevice.h>
 
-使用 USB 数据线连接开发板到 PC，使用 J-link 接口下载和 DEBUG 程序。使用 USB 转串口工具连接 UART7：P613(TXD)、P614(RXD)。
+#define LED3_PIN    BSP_IO_PORT_01_PIN_06
+#define USER_INPUT  BSP_IO_PORT_01_PIN_05
 
-**编译下载**
-
-- 编译：双击 project.uvprojx 文件，打开 MDK5 工程，编译程序。
-
-> 注意：此工程需要使用 J-Flash Lite 工具烧录程序。建议使用 V7.50 及以上版本烧录工程。[J-Link 下载链接](https://www.segger.com/downloads/jlink/)
-
-- 下载：打开 J-Flash lite 工具，选择芯片型号 R7FA6M4AF，点击 OK 进入工具。选择 BSP 目录下 MDK 编译出的 /object/ra6m4.hex 文件，点击 Program Device 按钮开始烧录。具体操作过程可参考下图步骤：
-
-![image-20211011181555421](docs/picture/jflash1.png) 
-
-![image-20211011182047981](docs/picture/jflash2.png) 
-
-![image-20211011182434519](docs/picture/jflash.png) 
-
-![image-20211011182949604](docs/picture/jflash3.png) 
-
-**查看运行结果**
-
-下载程序成功之后，系统会自动运行并打印系统信息。
-
-连接开发板对应串口到 PC , 在终端工具里打开相应的串口（115200-8-1-N），复位设备后，可以看到 RT-Thread 的输出信息。输入 help 命令可查看系统中支持的命令。
-
-```bash
- \ | /
-- RT -     Thread Operating System
- / | \     4.0.4 build Oct 11 2021
- 2006 - 2021 Copyright by rt-thread team
-
-Hello RT-Thread!
-msh >
-msh >help
-RT-Thread shell commands:
-reboot           - Reboot System
-help             - RT - Thread shell help.
-ps               - List threads in the system.
-free             - Show the memory usage in the system.
-hello            - say hello world
-clear            - clear the terminal screen
-version          - show RT - Thread version information
-list_thread      - list thread
-list_sem         - list semaphore in system
-list_event       - list event in system
-list_mutex       - list mutex in system
-list_mailbox     - list mail box in system
-list_msgqueue    - list message queue in system
-list_timer       - list timer in system
-list_device      - list device in system
-list             - list all commands in system
-
-msh > 
-```
-
-**应用入口函数**
-
-应用层的入口函数在 **bsp\ra6m4-cpk\src\hal_emtry.c** 中 的 `void hal_entry(void)` 。用户编写的源文件可直接放在 src 目录下。
-
-```c
 void hal_entry(void)
 {
     rt_kprintf("\nHello RT-Thread!\n");
 
     while (1)
     {
-        rt_pin_write(LED3_PIN, PIN_HIGH);
-        rt_thread_mdelay(500);
-        rt_pin_write(LED3_PIN, PIN_LOW);
-        rt_thread_mdelay(500);
+        if (rt_pin_read(USER_INPUT)==0) {
+            rt_pin_write(LED3_PIN, PIN_HIGH);
+            rt_thread_mdelay(500);
+            rt_pin_write(LED3_PIN, PIN_LOW);
+            rt_thread_mdelay(500);
+        } else {
+            rt_pin_write(LED3_PIN, PIN_HIGH);
+            rt_thread_mdelay(2000);
+            rt_pin_write(LED3_PIN, PIN_LOW);
+            rt_thread_mdelay(500);
+        }
+        rt_kprintf("USER_INPUT=%d !\n",rt_pin_read(USER_INPUT));
+        rt_thread_mdelay(1);
     }
 }
+
+
+
 ```
 
-### 进阶使用
-
-**资料及文档**
-
-- [开发板官网主页](https://www2.renesas.cn/cn/zh/products/microcontrollers-microprocessors/ra-cortex-m-mcus/cpk-ra6m4-evaluation-board)
-- [开发板用户手册](https://www2.renesas.cn/cn/zh/document/mah/1527156?language=zh&r=1527191)
-- [瑞萨RA MCU 基础知识](https://www2.renesas.cn/cn/zh/document/gde/1520091)
-- [RA6 MCU 快速设计指南](https://www2.renesas.cn/cn/zh/document/apn/ra6-quick-design-guide)
-- [RA6M4_datasheet](https://www2.renesas.cn/cn/zh/document/dst/ra6m4-group-datasheet)
-- [RA6M4 Group User’s Manual: Hardware](https://www2.renesas.cn/cn/zh/document/man/ra6m4-group-user-s-manual-hardware)
-
-**FSP 配置**
-
-需要修改瑞萨的 BSP 外设配置或添加新的外设端口，需要用到瑞萨的 [FSP](https://www2.renesas.cn/jp/zh/software-tool/flexible-software-package-fsp#document) 配置工具。请务必按照如下步骤完成配置。配置中有任何问题可到[RT-Thread 社区论坛](https://club.rt-thread.org/)中提问。
-
-1. [下载灵活配置软件包 (FSP) | Renesas](https://www.renesas.com/cn/zh/software-tool/flexible-software-package-fsp)，请使用 FSP 3.5.0 版本
-2. 下载安装完成后，需要添加 CPK-RA6M4 开发板的官方板级支持包
-> 打开[ CPK-RA6M4 开发板详情页](https://www2.renesas.cn/jp/zh/products/microcontrollers-microprocessors/ra-cortex-m-mcus/cpk-ra6m4-evaluation-board)，在**“下载”**列表中找到 **”CPK-RA6M4板级支持包“**，点击链接即可下载
-3. 如何将 **”CPK-RA6M4板级支持包“**添加到 FSP 中，请参考文档[如何导入板级支持包](https://www2.renesas.cn/document/ppt/1527171?language=zh&r=1527191)
-4. 请查看文档：[使用 FSP 配置外设驱动](../docs/RA系列使用FSP配置外设驱动.md)，在 MDK 中通过添加自定义命名来打开当前工程的 FSP 配置。
-
-**ENV 配置**
-
-- 如何使用 ENV 工具：[RT-Thread env 工具用户手册](https://www.rt-thread.org/document/site/#/development-tools/env/env)
-
-此 BSP 默认只开启了 UART7 的功能，如果需使用更多高级功能例如组件、软件包等，需要利用 ENV 工具进行配置。
-
-步骤如下：
-1. 在 bsp 下打开 env 工具。
-2. 输入`menuconfig`命令配置工程，配置好之后保存退出。
-3. 输入`pkgs --update`命令更新软件包。
-4. 输入`scons --target=mdk5` 命令重新生成工程。
+**保存完是灰色，没有保存是蓝色。**
+# 3. 代码分析
+采用轮询方式检查按键是否触发，好像按键默认拉高了
 
 
-## FAQ
+# 4. 下载验证
+1、编译重构
+![在这里插入图片描述](https://img-blog.csdnimg.cn/ba3a8424fe3a4a9f845a7a3dd5375d00.png)
 
-### 使用 MDK 的 DEBUG 时如果遇到提示  “Error: Flash Download failed Cortex-M33” 怎么办？
+编译成功
 
-可按照下图操作，修改 Utilities 中的选项：
+2、下载程序
+![在这里插入图片描述](https://img-blog.csdnimg.cn/880e09ffbf924bb087aa4e5c51b51e80.png)
 
-![image-20211214102231248](docs/picture/readme_faq1.png) 
+下载成功
 
-## 联系人信息
 
-在使用过程中若您有任何的想法和建议，建议您通过以下方式来联系到我们  [RT-Thread 社区论坛](https://club.rt-thread.org/)
+3、CMD串口调试
 
-## 贡献代码
+![在这里插入图片描述](https://img-blog.csdnimg.cn/181227ee2ed64ef2801477ece50cf41c.png)
+然后板载复位
+![在这里插入图片描述](https://img-blog.csdnimg.cn/1421d3b65a60412496f68b33a4123033.png)
 
-如果您对 CPK-RA6M4 感兴趣，并且有一些好玩的项目愿意与大家分享的话欢迎给我们贡献代码，您可以参考 [如何向 RT-Thread 代码贡献](https://www.rt-thread.org/document/site/#/rt-thread-version/rt-thread-standard/development-guide/github/github)。
+效果如下
+![请添加图片描述](https://img-blog.csdnimg.cn/2f9e3b7841b0497d8b0663f68ff7a534.gif)
+
+这样我们就可以天马行空啦!![请添加图片描述](https://img-blog.csdnimg.cn/92099d4d054b4b2cbd39b95719739a90.gif)
+
+参考文献；
+[【基于 RT-Thread Studio的CPK-RA6M4 开发板环境搭建】](https://blog.csdn.net/vor234/article/details/125634313)
